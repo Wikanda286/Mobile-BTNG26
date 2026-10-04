@@ -1,46 +1,5 @@
-class Genre {
-  final String slug;
-  final String nama;
-  final int jumlah;
-
-  Genre({
-    required this.slug,
-    required this.nama,
-    required this.jumlah,
-  });
-}
-
-class Cast {
-  final int id;
-  final String name;
-  final String character;
-  final String avatarUrl;
-
-  Cast({
-    required this.id,
-    required this.name,
-    required this.character,
-    required this.avatarUrl,
-  });
-}
-
-class Review {
-  final int id;
-  final String author;
-  final String avatarUrl;
-  final double rating;
-  final String content;
-  final String createdAt;
-
-  Review({
-    required this.id,
-    required this.author,
-    required this.avatarUrl,
-    required this.rating,
-    required this.content,
-    required this.createdAt,
-  });
-}
+import 'package:movieapp/models/cast.dart';
+import 'package:movieapp/models/review.dart';
 
 class Movie {
   final int id;

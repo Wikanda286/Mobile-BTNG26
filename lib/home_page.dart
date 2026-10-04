@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:movieapp/detail_page.dart';
+import 'package:movieapp/models/cast.dart';
 import 'package:movieapp/models/movie.dart';
+import 'package:movieapp/models/review.dart';
 
 class homePage extends StatefulWidget {
   const homePage({super.key});
