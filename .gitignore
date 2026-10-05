@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Documentation files
+PERTEMUAN 2 - FLUTTER BASIC WIDGET.md
+PERTEMUAN 3 - DASAR DART & OOP.md
+
