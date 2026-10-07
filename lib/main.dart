@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:movieapp/home_page.dart';
+import 'package:movieapp/login_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,9 +15,9 @@ class MyApp extends StatelessWidget {
       title: 'Movie App',
       theme: ThemeData(
         fontFamily: 'Poppins',
-        scaffoldBackgroundColor: const Color(0xFF112028),
+        scaffoldBackgroundColor: const Color(0xFF1E232A),
       ),
-      home: homePage(),
+      home: const LoginPage(),
     );
   }
 }
