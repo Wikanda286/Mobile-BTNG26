@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:movieapp/home_page.dart';
+import 'package:movieapp/ui/colors.dart';
+import 'package:movieapp/ui/reuse_button.dart';
+import 'package:movieapp/ui/reuse_social_button.dart';
+import 'package:movieapp/ui/reuse_textfield.dart';
+import 'package:movieapp/ui/typography.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,9 +27,10 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E232A),
+      backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E232A),
+        backgroundColor: background,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Container(
@@ -37,88 +42,48 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               Container(
                 alignment: Alignment.center,
-                child: const Text(
+                child: Text(
                   'Login here',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Poppins',
-                  ),
+                  style: lBold.copyWith(color: white),
                 ),
               ),
-              Container(height: 16),
+              const SizedBox(height: 16),
               Container(
                 alignment: Alignment.center,
-                child: const Text(
+                child: Text(
                   "Welcome back you've been missed!",
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Poppins',
-                  ),
+                  style: mSemiBold.copyWith(color: white, fontSize: 18),
                 ),
               ),
-              Container(height: 36),
+              const SizedBox(height: 36),
               Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                child: TextField(
+                child: ReuseTextfieldAuth(
                   controller: _usernameController,
-                  style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
-                  decoration: InputDecoration(
-                    labelText: 'Email atau Username',
-                    labelStyle: const TextStyle(
-                      color: Colors.white70,
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.white70, width: 1.5),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.white, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                  ),
+                  labelText: 'Email atau Username',
+                  hintText: 'Email atau Username',
+                  keyboardType: TextInputType.emailAddress,
                 ),
               ),
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                child: TextField(
+                child: ReuseTextfieldAuth(
                   controller: _passwordController,
+                  labelText: 'Password',
+                  hintText: 'Password',
                   obscureText: _isObscure,
-                  style: const TextStyle(color: Colors.white, fontFamily: 'Poppins'),
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: const TextStyle(
-                      color: Colors.white70,
-                      fontFamily: 'Poppins',
-                      fontSize: 14,
+                  keyboardType: TextInputType.visiblePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isObscure ? Icons.visibility_off : Icons.visibility,
+                      color: grey,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.white70, width: 1.5),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.white, width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isObscure ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.white54,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isObscure = !_isObscure;
-                        });
-                      },
-                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isObscure = !_isObscure;
+                      });
+                    },
                   ),
                 ),
               ),
@@ -128,7 +93,9 @@ class _LoginPageState extends State<LoginPage> {
                 child: TextButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fitur sedang dalam pengerjaan')),
+                      const SnackBar(
+                        content: Text('Fitur sedang dalam pengerjaan'),
+                      ),
                     );
                   },
                   style: TextButton.styleFrom(
@@ -136,159 +103,77 @@ class _LoginPageState extends State<LoginPage> {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text(
+                  child: Text(
                     'Forgot Password?',
-                    style: TextStyle(
-                      color: Color(0xFF0095FF),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      fontFamily: 'Poppins',
-                    ),
+                    style: sBold.copyWith(color: blue),
                   ),
                 ),
               ),
               Container(
-                width: double.infinity,
-                height: 54,
                 margin: const EdgeInsets.only(bottom: 16),
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_usernameController.text == 'admin' && _passwordController.text == 'Admin123') {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const homePage()),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Username atau Password salah!')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Sign In',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
+                child: const ReuseButtonAuth(
+                  isLogin: true,
                 ),
               ),
               Container(
-                width: double.infinity,
-                height: 54,
                 margin: const EdgeInsets.only(bottom: 36),
-                child: ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fitur sedang dalam pengerjaan')),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5D636E),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Create new account',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
+                child: const ReuseButtonAuth(
+                  isLogin: false,
                 ),
               ),
               Container(
                 alignment: Alignment.center,
                 margin: const EdgeInsets.only(bottom: 20),
-                child: const Text(
+                child: Text(
                   'Or continue with',
-                  style: TextStyle(
-                    color: Color(0xFF0095FF),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    fontFamily: 'Poppins',
-                  ),
+                  style: sBold.copyWith(color: blue),
                 ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 70,
-                    height: 50,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Fitur sedang dalam pengerjaan')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5D636E),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  ReuseSocialButton(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Fitur sedang dalam pengerjaan'),
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Icon(Icons.g_mobiledata, color: Colors.white, size: 34),
+                      );
+                    },
+                    child: const Icon(
+                      Icons.g_mobiledata,
+                      color: white,
+                      size: 34,
                     ),
                   ),
-                  Container(
-                    width: 70,
-                    height: 50,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Fitur sedang dalam pengerjaan')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5D636E),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 16),
+                  ReuseSocialButton(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Fitur sedang dalam pengerjaan'),
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Icon(Icons.facebook, color: Colors.white, size: 24),
+                      );
+                    },
+                    child: const Icon(
+                      Icons.facebook,
+                      color: white,
+                      size: 24,
                     ),
                   ),
-                  Container(
-                    width: 70,
-                    height: 50,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Fitur sedang dalam pengerjaan')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5D636E),
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 16),
+                  ReuseSocialButton(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Fitur sedang dalam pengerjaan'),
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Icon(Icons.apple, color: Colors.white, size: 26),
+                      );
+                    },
+                    child: const Icon(
+                      Icons.apple,
+                      color: white,
+                      size: 26,
                     ),
                   ),
                 ],
