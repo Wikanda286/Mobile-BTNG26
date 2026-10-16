@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:movieapp/core/di/injection.dart';
 import 'package:movieapp/models/movie.dart';
+import 'package:movieapp/services/movie_service.dart';
 import 'package:movieapp/ui/colors.dart';
 import 'package:movieapp/ui/typography.dart';
 
@@ -13,17 +15,113 @@ class DetailPage extends StatefulWidget {
 }
 
 class _DetailPageState extends State<DetailPage> {
+  final MovieService _movieService = getIt<MovieService>();
+
+  late Movie _movie;
+  bool _isLoadingDetail = false;
+  String? _detailErrorMessage;
   int _selectedTabIndex = 0;
 
-  String _getAssetPath(String raw) {
-    if (raw.isEmpty) return 'assets/images/movie.png';
-    if (raw.startsWith('assets/')) return raw;
-    return 'assets/images/$raw';
+  @override
+  void initState() {
+    super.initState();
+    _movie = widget.movie;
+    _fetchMovieDetail();
+  }
+
+  Future<void> _fetchMovieDetail() async {
+    setState(() {
+      _isLoadingDetail = true;
+      _detailErrorMessage = null;
+    });
+
+    try {
+      final detail = await _movieService.getMovieDetail(_movie.id);
+      if (mounted) {
+        setState(() {
+          _movie = detail;
+          _isLoadingDetail = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingDetail = false;
+          _detailErrorMessage = e.toString().replaceAll("Exception: ", "");
+        });
+      }
+    }
+  }
+
+  Widget _buildNetworkOrAssetImage(
+    String rawUrl, {
+    BoxFit fit = BoxFit.cover,
+    Widget? errorWidget,
+  }) {
+    if (rawUrl.isEmpty) {
+      return errorWidget ??
+          Container(
+            color: buttonGrey,
+            child: const Center(
+              child: Icon(Icons.movie, color: white, size: 40),
+            ),
+          );
+    }
+
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return Image.network(
+        rawUrl,
+        fit: fit,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: buttonGrey,
+            child: const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2, color: blue),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) =>
+            errorWidget ??
+            Container(
+              color: buttonGrey,
+              child: const Center(
+                child: Icon(Icons.image_not_supported, color: white, size: 36),
+              ),
+            ),
+      );
+    }
+
+    final assetPath = rawUrl.startsWith('assets/') ? rawUrl : 'assets/images/$rawUrl';
+    return Image.asset(
+      assetPath,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) =>
+          errorWidget ??
+          Container(
+            color: buttonGrey,
+            child: const Center(
+              child: Icon(Icons.movie, color: white, size: 40),
+            ),
+          ),
+    );
+  }
+
+  ImageProvider? _getAvatarProvider(String rawUrl) {
+    if (rawUrl.isEmpty) return null;
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return NetworkImage(rawUrl);
+    }
+    final assetPath = rawUrl.startsWith('assets/') ? rawUrl : 'assets/images/$rawUrl';
+    return AssetImage(assetPath);
   }
 
   @override
   Widget build(BuildContext context) {
-    final movie = widget.movie;
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
 
@@ -64,16 +162,7 @@ class _DetailPageState extends State<DetailPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    _getAssetPath(movie.backdropUrl),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: buttonGrey,
-                      child: const Center(
-                        child: Icon(Icons.movie, color: white, size: 50),
-                      ),
-                    ),
-                  ),
+                  _buildNetworkOrAssetImage(_movie.backdropUrl),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -105,7 +194,7 @@ class _DetailPageState extends State<DetailPage> {
                           const Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
-                            movie.rating.toString(),
+                            _movie.rating.toString(),
                             style: sBold.copyWith(color: Colors.amber),
                           ),
                         ],
@@ -131,16 +220,7 @@ class _DetailPageState extends State<DetailPage> {
                             width: screenWidth > 600 ? 140 : 100,
                             child: AspectRatio(
                               aspectRatio: 2 / 3,
-                              child: Image.asset(
-                                _getAssetPath(movie.posterUrl),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Container(
-                                  color: buttonGrey,
-                                  child: const Center(
-                                    child: Icon(Icons.image_not_supported, color: white),
-                                  ),
-                                ),
-                              ),
+                              child: _buildNetworkOrAssetImage(_movie.posterUrl),
                             ),
                           ),
                         ),
@@ -150,7 +230,7 @@ class _DetailPageState extends State<DetailPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                movie.title,
+                                _movie.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: mBold.copyWith(color: white),
@@ -161,7 +241,7 @@ class _DetailPageState extends State<DetailPage> {
                                   const Icon(Icons.calendar_today_outlined, color: grey, size: 14),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "${movie.releaseYear}",
+                                    "${_movie.releaseYear}",
                                     style: xsRegular.copyWith(color: grey),
                                   ),
                                   const Padding(
@@ -171,7 +251,7 @@ class _DetailPageState extends State<DetailPage> {
                                   const Icon(Icons.access_time, color: grey, size: 14),
                                   const SizedBox(width: 4),
                                   Text(
-                                    movie.getFormattedDuration(),
+                                    _movie.getFormattedDuration(),
                                     style: xsRegular.copyWith(color: grey),
                                   ),
                                 ],
@@ -185,7 +265,7 @@ class _DetailPageState extends State<DetailPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: movie.genre.map((genreName) {
+                      children: _movie.genre.map((genreName) {
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
@@ -213,7 +293,7 @@ class _DetailPageState extends State<DetailPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildActiveTabContent(movie),
+                    _buildActiveTabContent(),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -257,22 +337,22 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildActiveTabContent(Movie movie) {
+  Widget _buildActiveTabContent() {
     switch (_selectedTabIndex) {
       case 0:
-        return _buildAboutTab(movie);
+        return _buildAboutTab();
       case 1:
-        return _buildCastTab(movie);
+        return _buildCastTab();
       case 2:
-        return _buildReviewsTab(movie);
+        return _buildReviewsTab();
       default:
-        return _buildAboutTab(movie);
+        return _buildAboutTab();
     }
   }
 
-  Widget _buildAboutTab(Movie movie) {
+  Widget _buildAboutTab() {
     return Text(
-      movie.getSafeSynopsis(),
+      _movie.getSafeSynopsis(),
       style: sRegular.copyWith(
         color: white.withValues(alpha: 0.85),
         height: 1.6,
@@ -280,8 +360,40 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildCastTab(Movie movie) {
-    if (movie.cast.isEmpty) {
+  Widget _buildCastTab() {
+    if (_isLoadingDetail && _movie.cast.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(color: blue),
+        ),
+      );
+    }
+
+    if (_detailErrorMessage != null && _movie.cast.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            children: [
+              Text(
+                "Gagal memuat pemeran: $_detailErrorMessage",
+                style: xsRegular.copyWith(color: grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _fetchMovieDetail,
+                icon: const Icon(Icons.refresh, color: blue, size: 16),
+                label: const Text("Coba Lagi", style: TextStyle(color: blue)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_movie.cast.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
@@ -294,38 +406,85 @@ class _DetailPageState extends State<DetailPage> {
     }
 
     return SizedBox(
-      height: 110,
+      height: 120,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: movie.cast.length,
+        itemCount: _movie.cast.length,
         separatorBuilder: (context, index) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
-          final cast = movie.cast[index];
-          return Column(
-            children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: buttonGrey.withValues(alpha: 0.6),
-                child: const Icon(Icons.person, color: white, size: 28),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                cast.name,
-                style: xsBold.copyWith(color: white),
-              ),
-              Text(
-                cast.character,
-                style: xxsRegular.copyWith(color: grey),
-              ),
-            ],
+          final cast = _movie.cast[index];
+          final avatarProvider = _getAvatarProvider(cast.avatarUrl);
+
+          return SizedBox(
+            width: 80,
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: buttonGrey.withValues(alpha: 0.6),
+                  backgroundImage: avatarProvider,
+                  onBackgroundImageError: avatarProvider != null ? (error, stackTrace) {} : null,
+                  child: avatarProvider == null
+                      ? const Icon(Icons.person, color: white, size: 28)
+                      : null,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  cast.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: xsBold.copyWith(color: white),
+                ),
+                Text(
+                  cast.character,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: xxsRegular.copyWith(color: grey),
+                ),
+              ],
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildReviewsTab(Movie movie) {
-    if (movie.reviews.isEmpty) {
+  Widget _buildReviewsTab() {
+    if (_isLoadingDetail && _movie.reviews.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(color: blue),
+        ),
+      );
+    }
+
+    if (_detailErrorMessage != null && _movie.reviews.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            children: [
+              Text(
+                "Gagal memuat ulasan: $_detailErrorMessage",
+                style: xsRegular.copyWith(color: grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _fetchMovieDetail,
+                icon: const Icon(Icons.refresh, color: blue, size: 16),
+                label: const Text("Coba Lagi", style: TextStyle(color: blue)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_movie.reviews.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24),
@@ -338,7 +497,9 @@ class _DetailPageState extends State<DetailPage> {
     }
 
     return Column(
-      children: movie.reviews.map((review) {
+      children: _movie.reviews.map((review) {
+        final avatarProvider = _getAvatarProvider(review.avatarUrl);
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 14),
           child: Container(
@@ -354,7 +515,11 @@ class _DetailPageState extends State<DetailPage> {
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: blue.withValues(alpha: 0.2),
-                  child: const Icon(Icons.person, color: blue, size: 20),
+                  backgroundImage: avatarProvider,
+                  onBackgroundImageError: avatarProvider != null ? (error, stackTrace) {} : null,
+                  child: avatarProvider == null
+                      ? const Icon(Icons.person, color: blue, size: 20)
+                      : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

@@ -14,4 +14,17 @@ class Review {
     required this.content,
     required this.createdAt,
   });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      author: json['author']?.toString() ?? '',
+      avatarUrl: json['avatarUrl']?.toString() ?? '',
+      rating: (json['rating'] is num)
+          ? (json['rating'] as num).toDouble()
+          : double.tryParse(json['rating']?.toString() ?? '0.0') ?? 0.0,
+      content: json['content']?.toString() ?? '',
+      createdAt: json['createdAt']?.toString() ?? '',
+    );
+  }
 }

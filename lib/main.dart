@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:movieapp/core/di/injection.dart';
 import 'package:movieapp/login_page.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  setupLocator();
   runApp(const MyApp());
 }
 
