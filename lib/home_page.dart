@@ -3,15 +3,19 @@ import 'package:movieapp/detail_page.dart';
 import 'package:movieapp/models/cast.dart';
 import 'package:movieapp/models/movie.dart';
 import 'package:movieapp/models/review.dart';
+import 'package:movieapp/ui/colors.dart';
+import 'package:movieapp/ui/typography.dart';
 
-class homePage extends StatefulWidget {
-  const homePage({super.key});
+typedef homePage = HomePage;
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<homePage> createState() => _homePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _homePageState extends State<homePage> {
+class _HomePageState extends State<HomePage> {
   final List<Movie> dummyMovies = [
     Movie(
       id: 1,
@@ -236,111 +240,230 @@ class _homePageState extends State<homePage> {
     }
   }
 
+  List<Movie> _getFilteredCategoryMovies() {
+    switch (_selectedCategoryIndex) {
+      case 0:
+        return dummyMovies.take(6).toList();
+      case 1:
+        return dummyMovies.where((m) => m.releaseYear >= 2022).toList();
+      case 2:
+        final sorted = List<Movie>.from(dummyMovies)
+          ..sort((a, b) => b.rating.compareTo(a.rating));
+        return sorted;
+      default:
+        return dummyMovies;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final popularMovies = dummyMovies.take(2).toList();
-    final nowPlayingMovies = dummyMovies.skip(2).take(3).toList();
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+
+    final int crossAxisCount = screenWidth > 900
+        ? 5
+        : screenWidth > 600
+            ? 4
+            : screenWidth > 380
+                ? 3
+                : 2;
+
+    final popularMovies = dummyMovies.where((m) => m.rating >= 8.0).toList();
+    final categoryMovies = _getFilteredCategoryMovies();
 
     return Scaffold(
+      backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF112028),
+        backgroundColor: background,
         elevation: 0,
-        title: const Text(
+        title: Text(
           "What do you want to watch?",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: "Poppins",
-          ),
+          style: mBold.copyWith(color: white),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Popular",
-              style: TextStyle(
-                fontFamily: "Poppins",
-                fontSize: 16,
-                color: Colors.white,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Popular",
+                style: smBold.copyWith(color: white),
               ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 4,
-              width: 64,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.circular(2),
+              const SizedBox(height: 8),
+              Container(
+                height: 4,
+                width: 64,
+                decoration: BoxDecoration(
+                  color: blue,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: popularMovies.map((movie) {
-                return GestureDetector(
-                  onTap: () => _navigateToDetail(context, movie),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        _getAssetPath(movie.posterUrl),
-                        width: 140,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 140,
-                          height: 200,
-                          color: Colors.grey[800],
-                          child: const Icon(Icons.movie, color: Colors.white),
-                        ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 220,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: popularMovies.length,
+                  separatorBuilder: (context, index) => const SizedBox(width: 14),
+                  itemBuilder: (context, index) {
+                    final movie = popularMovies[index];
+                    return GestureDetector(
+                      onTap: () => _navigateToDetail(context, movie),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: AspectRatio(
+                              aspectRatio: 2 / 3,
+                              child: Image.asset(
+                                _getAssetPath(movie.posterUrl),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  color: buttonGrey,
+                                  child: const Center(
+                                    child: Icon(Icons.movie, color: white, size: 40),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.star, color: Colors.amber, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    movie.rating.toString(),
+                                    style: xsBold.copyWith(color: Colors.amber),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 6,
+                            left: 8,
+                            child: Text(
+                              "${index + 1}",
+                              style: TextStyle(
+                                fontSize: 44,
+                                fontWeight: FontWeight.w900,
+                                fontFamily: "Poppins",
+                                color: white.withValues(alpha: 0.85),
+                                shadows: const [
+                                  Shadow(
+                                    blurRadius: 8,
+                                    color: Colors.black,
+                                    offset: Offset(2, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCategoryTab("Now Playing", 0),
-                const SizedBox(width: 16),
-                _buildCategoryTab("Upcoming", 1),
-                const SizedBox(width: 16),
-                _buildCategoryTab("Top Rated", 2),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: nowPlayingMovies.map((movie) {
-                return GestureDetector(
-                  onTap: () => _navigateToDetail(context, movie),
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        _getAssetPath(movie.posterUrl),
-                        width: 96,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 100,
-                          height: 150,
-                          color: Colors.grey[800],
-                          child: const Icon(Icons.movie, color: Colors.white),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 28),
+              Wrap(
+                spacing: 16,
+                runSpacing: 10,
+                children: [
+                  _buildCategoryTab("Now Playing", 0),
+                  _buildCategoryTab("Upcoming", 1),
+                  _buildCategoryTab("Top Rated", 2),
+                ],
+              ),
+              const SizedBox(height: 18),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: categoryMovies.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.58,
+                ),
+                itemBuilder: (context, index) {
+                  final movie = categoryMovies[index];
+                  return GestureDetector(
+                    onTap: () => _navigateToDetail(context, movie),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: AspectRatio(
+                                aspectRatio: 2 / 3,
+                                child: Image.asset(
+                                  _getAssetPath(movie.posterUrl),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: buttonGrey,
+                                    child: const Center(
+                                      child: Icon(Icons.movie, color: white),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 6,
+                              right: 6,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star, color: Colors.amber, size: 12),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      movie.rating.toString(),
+                                      style: xxsBold.copyWith(color: Colors.amber),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        Expanded(
+                          child: Text(
+                            movie.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: xsMedium.copyWith(color: white),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -356,22 +479,21 @@ class _homePageState extends State<homePage> {
         });
       },
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontFamily: "Poppins",
-              fontSize: 16,
-              color: isSelected ? Colors.white : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            style: smMedium.copyWith(
+              color: isSelected ? white : grey,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Container(
             height: 4,
-            width: isSelected ? 80 : 0,
+            width: isSelected ? 40 : 0,
             decoration: BoxDecoration(
-              color: isSelected ? Colors.grey : Colors.transparent,
+              color: isSelected ? blue : Colors.transparent,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
