@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:movieapp/core/di/injection.dart';
 import 'package:movieapp/detail_page.dart';
+import 'package:movieapp/models/genre.dart';
 import 'package:movieapp/models/movie.dart';
 import 'package:movieapp/services/movie_service.dart';
 import 'package:movieapp/ui/colors.dart';
 import 'package:movieapp/ui/typography.dart';
 
+// ignore: camel_case_types
 typedef homePage = HomePage;
 
 class HomePage extends StatefulWidget {
@@ -19,10 +21,18 @@ class _HomePageState extends State<HomePage> {
   final MovieService _movieService = getIt<MovieService>();
 
   List<Movie> _movies = [];
+  List<Genre> _genres = [];
   bool _isLoading = true;
   String? _errorMessage;
 
   int _selectedCategoryIndex = 0;
+
+  List<String> get _genreTabs {
+    if (_genres.isEmpty) {
+      return ["All", "Action", "Adventure", "Sci-Fi", "Drama"];
+    }
+    return ["All", ..._genres.take(4).map((g) => g.nama)];
+  }
 
   @override
   void initState() {
@@ -37,9 +47,13 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      final movies = await _movieService.getMovies();
+      final results = await Future.wait([
+        _movieService.getMovies(),
+        _movieService.getGenres(),
+      ]);
       setState(() {
-        _movies = movies;
+        _movies = results[0] as List<Movie>;
+        _genres = results[1] as List<Genre>;
         _isLoading = false;
       });
     } catch (e) {
@@ -115,19 +129,21 @@ class _HomePageState extends State<HomePage> {
   List<Movie> _getFilteredCategoryMovies() {
     if (_movies.isEmpty) return [];
 
-    switch (_selectedCategoryIndex) {
-      case 0:
-        return _movies;
-      case 1:
-        final upcoming = _movies.where((m) => m.releaseYear >= 2022).toList();
-        return upcoming.isNotEmpty ? upcoming : _movies;
-      case 2:
-        final sorted = List<Movie>.from(_movies)
-          ..sort((a, b) => b.rating.compareTo(a.rating));
-        return sorted;
-      default:
-        return _movies;
+    final tabs = _genreTabs;
+    if (_selectedCategoryIndex < 0 || _selectedCategoryIndex >= tabs.length) {
+      return _movies;
     }
+
+    final selectedGenre = tabs[_selectedCategoryIndex];
+    if (selectedGenre == "All") {
+      return _movies;
+    }
+
+    final filtered = _movies.where((m) {
+      return m.genre.any((g) => g.toLowerCase() == selectedGenre.toLowerCase());
+    }).toList();
+
+    return filtered;
   }
 
   @override
@@ -149,6 +165,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: background,
         elevation: 0,
         title: Text(
@@ -214,6 +231,8 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
+
+    final tabs = _genreTabs;
 
     return RefreshIndicator(
       color: blue,
@@ -312,14 +331,16 @@ class _HomePageState extends State<HomePage> {
                       ),
               ),
               const SizedBox(height: 28),
-              Wrap(
-                spacing: 16,
-                runSpacing: 10,
-                children: [
-                  _buildCategoryTab("Now Playing", 0),
-                  _buildCategoryTab("Upcoming", 1),
-                  _buildCategoryTab("Top Rated", 2),
-                ],
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(tabs.length, (index) {
+                    return Padding(
+                      padding: EdgeInsets.only(right: index == tabs.length - 1 ? 0 : 20),
+                      child: _buildCategoryTab(tabs[index], index),
+                    );
+                  }),
+                ),
               ),
               const SizedBox(height: 18),
               categoryMovies.isEmpty
@@ -426,7 +447,7 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 6),
           Container(
             height: 4,
-            width: isSelected ? 40 : 0,
+            width: isSelected ? 32 : 0,
             decoration: BoxDecoration(
               color: isSelected ? blue : Colors.transparent,
               borderRadius: BorderRadius.circular(2),
