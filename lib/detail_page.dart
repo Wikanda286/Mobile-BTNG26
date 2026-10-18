@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:movieapp/core/di/injection.dart';
 import 'package:movieapp/models/movie.dart';
 import 'package:movieapp/services/movie_service.dart';
+import 'package:movieapp/services/watchlist_service.dart';
 import 'package:movieapp/ui/colors.dart';
 import 'package:movieapp/ui/typography.dart';
 
@@ -16,6 +17,7 @@ class DetailPage extends StatefulWidget {
 
 class _DetailPageState extends State<DetailPage> {
   final MovieService _movieService = getIt<MovieService>();
+  final WatchlistService _watchlistService = getIt<WatchlistService>();
 
   late Movie _movie;
   bool _isLoadingDetail = false;
@@ -140,14 +142,30 @@ class _DetailPageState extends State<DetailPage> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark_outline, color: white),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Film disimpan ke bookmark'),
-                  duration: Duration(seconds: 1),
+          ListenableBuilder(
+            listenable: _watchlistService,
+            builder: (context, _) {
+              final isSaved = _watchlistService.isInWatchlist(_movie.id);
+              return IconButton(
+                icon: Icon(
+                  isSaved ? Icons.bookmark : Icons.bookmark_outline,
+                  color: isSaved ? blue : white,
                 ),
+                onPressed: () {
+                  _watchlistService.toggleWatchlist(_movie);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isSaved
+                            ? '${_movie.title} dihapus dari Watch list'
+                            : '${_movie.title} ditambahkan ke Watch list',
+                      ),
+                      duration: const Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: buttonGrey,
+                    ),
+                  );
+                },
               );
             },
           ),

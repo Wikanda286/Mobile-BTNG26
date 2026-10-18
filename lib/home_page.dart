@@ -3,9 +3,12 @@ import 'package:movieapp/core/di/injection.dart';
 import 'package:movieapp/detail_page.dart';
 import 'package:movieapp/models/genre.dart';
 import 'package:movieapp/models/movie.dart';
+import 'package:movieapp/search_page.dart';
 import 'package:movieapp/services/movie_service.dart';
+import 'package:movieapp/services/watchlist_service.dart';
 import 'package:movieapp/ui/colors.dart';
 import 'package:movieapp/ui/typography.dart';
+import 'package:movieapp/watchlist_page.dart';
 
 // ignore: camel_case_types
 typedef homePage = HomePage;
@@ -19,6 +22,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final MovieService _movieService = getIt<MovieService>();
+  final WatchlistService _watchlistService = getIt<WatchlistService>();
+
+  int _currentIndex = 0;
 
   List<Movie> _movies = [];
   List<Genre> _genres = [];
@@ -27,11 +33,12 @@ class _HomePageState extends State<HomePage> {
 
   int _selectedCategoryIndex = 0;
 
-  List<String> get _genreTabs {
+  List<String> get _categoryTabs {
+    final defaultTabs = ["Now playing", "Upcoming", "Top rated"];
     if (_genres.isEmpty) {
-      return ["All", "Action", "Adventure", "Sci-Fi", "Drama"];
+      return defaultTabs;
     }
-    return ["All", ..._genres.take(4).map((g) => g.nama)];
+    return [...defaultTabs, ..._genres.take(4).map((g) => g.nama)];
   }
 
   @override
@@ -51,16 +58,26 @@ class _HomePageState extends State<HomePage> {
         _movieService.getMovies(),
         _movieService.getGenres(),
       ]);
-      setState(() {
-        _movies = results[0] as List<Movie>;
-        _genres = results[1] as List<Genre>;
-        _isLoading = false;
-      });
+      final loadedMovies = results[0] as List<Movie>;
+      final loadedGenres = results[1] as List<Genre>;
+
+      // Seed initial watchlist with first movie if empty
+      _watchlistService.seedInitialMovies(loadedMovies);
+
+      if (mounted) {
+        setState(() {
+          _movies = loadedMovies;
+          _genres = loadedGenres;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString().replaceAll("Exception: ", "");
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll("Exception: ", "");
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -129,25 +146,99 @@ class _HomePageState extends State<HomePage> {
   List<Movie> _getFilteredCategoryMovies() {
     if (_movies.isEmpty) return [];
 
-    final tabs = _genreTabs;
+    final tabs = _categoryTabs;
     if (_selectedCategoryIndex < 0 || _selectedCategoryIndex >= tabs.length) {
       return _movies;
     }
 
-    final selectedGenre = tabs[_selectedCategoryIndex];
-    if (selectedGenre == "All") {
-      return _movies;
+    final selected = tabs[_selectedCategoryIndex];
+
+    switch (selected) {
+      case "Now playing":
+        return _movies;
+      case "Upcoming":
+        final upcoming = _movies.where((m) => m.releaseYear >= 2022).toList();
+        return upcoming.isNotEmpty ? upcoming : _movies.reversed.toList();
+      case "Top rated":
+        final topRated = [..._movies];
+        topRated.sort((a, b) => b.rating.compareTo(a.rating));
+        return topRated;
+      default:
+        // Genre filter
+        final filtered = _movies.where((m) {
+          return m.genre.any((g) => g.toLowerCase() == selected.toLowerCase());
+        }).toList();
+        return filtered.isNotEmpty ? filtered : _movies;
     }
-
-    final filtered = _movies.where((m) {
-      return m.genre.any((g) => g.toLowerCase() == selectedGenre.toLowerCase());
-    }).toList();
-
-    return filtered;
   }
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: background,
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          _buildHomeView(),
+          const SearchPage(),
+          const WatchlistPage(),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: background,
+          border: Border(
+            top: BorderSide(
+              color: blue.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: background,
+          selectedItemColor: blue,
+          unselectedItemColor: const Color(0xFF67686D),
+          selectedLabelStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+          ),
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search_rounded),
+              activeIcon: Icon(Icons.search_rounded),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bookmark_outline_rounded),
+              activeIcon: Icon(Icons.bookmark_rounded),
+              label: 'Watch list',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeView() {
     final mediaQuery = MediaQuery.of(context);
     final screenWidth = mediaQuery.size.width;
 
@@ -232,7 +323,7 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    final tabs = _genreTabs;
+    final tabs = _categoryTabs;
 
     return RefreshIndicator(
       color: blue,
@@ -241,10 +332,43 @@ class _HomePageState extends State<HomePage> {
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Search input box matching Image 1
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _currentIndex = 1; // Switch to Search tab
+                  });
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  height: 48,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3A3F47),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "Search",
+                          style: sRegular.copyWith(color: const Color(0xFF92929D)),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.search_rounded,
+                        color: Color(0xFF92929D),
+                        size: 22,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               Text(
                 "Popular",
                 style: smBold.copyWith(color: white),

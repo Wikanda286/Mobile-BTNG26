@@ -9,7 +9,7 @@ class ReuseTextfieldAuth extends StatelessWidget {
   final bool obscureText;
   final TextInputType keyboardType;
   final Widget? suffixIcon;
-  ReuseTextfieldAuth({
+  const ReuseTextfieldAuth({
     super.key,
     this.obscureText = false,
     required this.controller,
